@@ -1,7 +1,8 @@
 // app/seed/route.ts
 'use server';
 
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
+
 import postgres from 'postgres';
 import { invoices, customers, revenue, users } from '../lib/placeholder-data';
 
