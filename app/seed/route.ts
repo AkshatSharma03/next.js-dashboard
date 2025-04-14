@@ -1,3 +1,6 @@
+// app/seed/route.ts
+'use server';
+
 import bcrypt from 'bcrypt';
 import postgres from 'postgres';
 import { invoices, customers, revenue, users } from '../lib/placeholder-data';
@@ -16,14 +19,14 @@ async function seedUsers() {
   `;
 
   const insertedUsers = await Promise.all(
-    users.map(async (user) => {
-      const hashedPassword = await bcrypt.hash(user.password, 10);
-      return sql`
+      users.map(async (user) => {
+        const hashedPassword = await bcrypt.hash(user.password, 10);
+        return sql`
         INSERT INTO users (id, name, email, password)
         VALUES (${user.id}, ${user.name}, ${user.email}, ${hashedPassword})
         ON CONFLICT (id) DO NOTHING;
       `;
-    }),
+      }),
   );
 
   return insertedUsers;
@@ -43,13 +46,13 @@ async function seedInvoices() {
   `;
 
   const insertedInvoices = await Promise.all(
-    invoices.map(
-      (invoice) => sql`
+      invoices.map(
+          (invoice) => sql`
         INSERT INTO invoices (customer_id, amount, status, date)
         VALUES (${invoice.customer_id}, ${invoice.amount}, ${invoice.status}, ${invoice.date})
         ON CONFLICT (id) DO NOTHING;
       `,
-    ),
+      ),
   );
 
   return insertedInvoices;
@@ -68,13 +71,13 @@ async function seedCustomers() {
   `;
 
   const insertedCustomers = await Promise.all(
-    customers.map(
-      (customer) => sql`
+      customers.map(
+          (customer) => sql`
         INSERT INTO customers (id, name, email, image_url)
         VALUES (${customer.id}, ${customer.name}, ${customer.email}, ${customer.image_url})
         ON CONFLICT (id) DO NOTHING;
       `,
-    ),
+      ),
   );
 
   return insertedCustomers;
@@ -89,13 +92,13 @@ async function seedRevenue() {
   `;
 
   const insertedRevenue = await Promise.all(
-    revenue.map(
-      (rev) => sql`
+      revenue.map(
+          (rev) => sql`
         INSERT INTO revenue (month, revenue)
         VALUES (${rev.month}, ${rev.revenue})
         ON CONFLICT (month) DO NOTHING;
       `,
-    ),
+      ),
   );
 
   return insertedRevenue;
@@ -103,15 +106,17 @@ async function seedRevenue() {
 
 export async function GET() {
   try {
-    const result = await sql.begin((sql) => [
-      seedUsers(),
-      seedCustomers(),
-      seedInvoices(),
-      seedRevenue(),
-    ]);
+    // Wrap all operations in a single transaction
+    await sql.begin(async (sql) => {
+      await seedUsers();
+      await seedCustomers();
+      await seedInvoices();
+      await seedRevenue();
+    });
 
     return Response.json({ message: 'Database seeded successfully' });
   } catch (error) {
-    return Response.json({ error }, { status: 500 });
+    console.error('Error seeding database:', error);
+    return Response.json({ error: 'Failed to seed database' }, { status: 500 });
   }
 }
